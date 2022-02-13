@@ -83,6 +83,9 @@ emit_c([[
 
 ]] .. local_prefix ..  [[bool raw_read(Blob *buffer, void *data, size_t len)
 {
+	if (len == 0)
+		return true;
+
 	if (buffer->siz < len) {
 		fprintf(stderr, "warning: buffer exhausted (requested bytes: %lu, remaining bytes: %lu)\n", len, buffer->siz);
 		return false;
