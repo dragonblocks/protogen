@@ -128,6 +128,9 @@ local function emit_vector(type, l)
 	existing_types[name] = true
 	has_deallocator[name] = false
 
+	existing_types[box] = true
+	has_deallocator[box] = false
+
 	local typedef, equals, add, clamp, mix, write, read, send, recv =
 	           "",     "",  "",    "",  "",    "",   "",   "",   ""
 
