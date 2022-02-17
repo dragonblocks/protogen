@@ -305,7 +305,7 @@ export_prefix .. "void String_free(String *val)", [[
 emit(
 export_prefix .. "void String_write(Blob *buffer, String *val)", [[
 {
-	raw_write(buffer, *val, strlen(*val) + 1);
+	*val ? raw_write(buffer, *val, strlen(*val) + 1) : raw_write(buffer, "", 1);
 }
 
 ]]
@@ -341,7 +341,7 @@ emit_c(
 #ifdef USE_DRAGONNET
 ]] .. local_prefix .. [[bool String_send(DragonnetPeer *peer, bool submit, String *val)
 {
-	return dragonnet_send_raw(peer, submit, *val, strlen(*val) + 1);
+	return *val ? dragonnet_send_raw(peer, submit, *val, strlen(*val) + 1) : dragonnet_send_raw(peer, submit, "", 1);
 }
 
 ]] .. local_prefix .. [[bool String_recv(DragonnetPeer *peer, String *val)
