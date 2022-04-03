@@ -131,13 +131,14 @@ local function emit_vector(type, l)
 	existing_types[box] = true
 	has_deallocator[box] = false
 
-	local typedef, equals, add, clamp, mix, write, read, send, recv =
-	           "",     "",  "",    "",  "",    "",   "",   "",   ""
+	local typedef, equals, add, clamp, cmp, mix, write, read, send, recv =
+	           "",     "",  "",    "",  "",  "",    "",   "",   "",   ""
 
 	typedef = typedef .. "\t" .. type .. " "
 	equals  = equals  .. "\treturn "
 	add     = add     .. "\treturn (" .. name .. ") {"
 	clamp   = clamp   .. "\treturn (" .. name .. ") {"
+	cmp     = cmp     .. "\tint i;\n"
 	mix     = mix     .. "\treturn (" .. name .. ") {"
 
 	for i, c in ipairs(vector_components[l]) do
@@ -176,6 +177,12 @@ local function emit_vector(type, l)
 				or ", "
 			)
 
+		cmp = cmp
+			.. "\tif ((i = " .. type .. "_cmp("
+			.. "&((const " .. name .. " *) a)->" .. c .. ", "
+			.. "&((const " .. name .. " *) b)->" .. c .. ")) != 0)"
+			.. "\n\t\treturn i;\n"
+
 		mix = mix
 			.. type .. "_mix("
 			.. "a." .. c .. ", "
@@ -204,6 +211,7 @@ local function emit_vector(type, l)
 	emit(export_prefix .. "bool " .. name .. "_equals(" .. name .. " a, " .. name .. " b)", "{\n" .. equals .. "}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_add(" .. name .. " a, " .. name .. " b)", "{\n" .. add .. "}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_clamp(" .. name .. " val, " .. name .. " min, " .. name .. " max)", "{\n" .. clamp .. "}\n\n")
+	emit(export_prefix .. "int " .. name .. "_cmp(const void *a, const void *b)", "{\n" .. cmp .. "\treturn 0;\n}\n\n")
 
 	if type:sub(1, 1) == "f" then
 		emit(export_prefix .. name .. " " .. name .. "_mix(" .. name .. " a, " .. name .. " b, " .. type .. " f)", "{\n" .. mix .. "}\n\n")
@@ -243,6 +251,7 @@ local function emit_numeric(class, bits, alias)
 	emit(export_prefix .. name .. " " .. name .. "_min(" .. name .. " a, " .. name .. " b)", "{\n\treturn a < b ? a : b;\n}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_max(" .. name .. " a, " .. name .. " b)", "{\n\treturn a > b ? a : b;\n}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_clamp(" .. name .. " val, " .. name .. " min, " .. name .. " max)", "{\n\treturn val < min ? min : val > max ? max : val;\n}\n\n")
+	emit(export_prefix .. "int " .. name .. "_cmp(const void *a, const void *b)", "{\n\treturn\n\t\t*(const " .. name .. " *) a < *(const " .. name .. " *) b ? -1 :\n\t\t*(const " .. name .. " *) a > *(const " .. name .. " *) b ? +1 :\n\t\t0;\n}\n\n")
 
 	if class == "f" then
 		emit(export_prefix .. name .. " " .. name .. "_mix(" .. name .. " a, " .. name .. " b, " .. name .. " f)", "{\n\treturn (1.0 - f) * a + b * f;\n}\n\n")
