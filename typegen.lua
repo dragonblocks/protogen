@@ -131,14 +131,15 @@ local function emit_vector(type, l)
 	existing_types[box] = true
 	has_deallocator[box] = false
 
-	local typedef, equals, add, clamp, cmp, mix, write, read, send, recv =
-	           "",     "",  "",    "",  "",  "",    "",   "",   "",   ""
+	local typedef, equals, add, clamp, cmp, scale, mix, write, read, send, recv =
+	           "",     "",  "",    "",  "",    "",  "",    "",   "",   "",   ""
 
 	typedef = typedef .. "\t" .. type .. " "
 	equals  = equals  .. "\treturn "
 	add     = add     .. "\treturn (" .. name .. ") {"
 	clamp   = clamp   .. "\treturn (" .. name .. ") {"
 	cmp     = cmp     .. "\tint i;\n"
+	scale   = scale   .. "\treturn (" .. name .. ") {"
 	mix     = mix     .. "\treturn (" .. name .. ") {"
 
 	for i, c in ipairs(vector_components[l]) do
@@ -183,6 +184,13 @@ local function emit_vector(type, l)
 			.. "&((const " .. name .. " *) b)->" .. c .. ")) != 0)"
 			.. "\n\t\treturn i;\n"
 
+		scale = scale
+			.. "v." .. c .. " * s" ..
+			(last
+				and "};\n"
+				or ", "
+			)
+
 		mix = mix
 			.. type .. "_mix("
 			.. "a." .. c .. ", "
@@ -212,6 +220,7 @@ local function emit_vector(type, l)
 	emit(export_prefix .. name .. " " .. name .. "_add(" .. name .. " a, " .. name .. " b)", "{\n" .. add .. "}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_clamp(" .. name .. " val, " .. name .. " min, " .. name .. " max)", "{\n" .. clamp .. "}\n\n")
 	emit(export_prefix .. "int " .. name .. "_cmp(const void *a, const void *b)", "{\n" .. cmp .. "\treturn 0;\n}\n\n")
+	emit(export_prefix .. name .. " " .. name .. "_scale(" .. name .. " v, " .. type .. " s)", "{\n" .. scale .. "}\n\n")
 
 	if type:sub(1, 1) == "f" then
 		emit(export_prefix .. name .. " " .. name .. "_mix(" .. name .. " a, " .. name .. " b, " .. type .. " f)", "{\n" .. mix .. "}\n\n")
