@@ -1,4 +1,4 @@
-#! /usr/bin/env lua
+#!/usr/bin/env lua
 require "luax"
 
 local h   = io.open("types.h",   "w")
@@ -205,13 +205,13 @@ local function emit_vector(type, l)
 			.. "\t" .. type .. "_write(buffer, &val->" .. c .. ");\n"
 
 		read = read
-			.. "\tif (! " .. type .. "_read(buffer, &val->" .. c .. "))\n\t\treturn false;\n"
+			.. "\tif (!" .. type .. "_read(buffer, &val->" .. c .. "))\n\t\treturn false;\n"
 
 		send = send
-			.. "\tif (! " .. type .. "_send(peer, " .. (last and "submit" or "false") .. ", &val->" .. c .. "))\n\t\treturn false;\n"
+			.. "\tif (!" .. type .. "_send(peer, " .. (last and "submit" or "false") .. ", &val->" .. c .. "))\n\t\treturn false;\n"
 
 		recv = recv
-			.. "\tif (! " .. type .. "_recv(peer, &val->" .. c .. "))\n\t\treturn false;\n"
+			.. "\tif (!" .. type .. "_recv(peer, &val->" .. c .. "))\n\t\treturn false;\n"
 	end
 
 	emit_h("typedef struct {\n" .. typedef ..  "} " .. name .. ";\n")
@@ -239,11 +239,11 @@ local function emit_vector(type, l)
 	emit_h("typedef struct {\n\t" .. name .. " min, max;\n} " .. box .. ";\n")
 
 	emit(export_prefix .. "void " .. box .. "_write(Blob *buffer, " .. box .. " *val)", "{\n\t" .. name .. "_write(buffer, &val->min);\n\t" .. name .. "_write(buffer, &val->max);\n}\n\n")
-	emit(export_prefix .. "bool " .. box .. "_read(Blob *buffer, " .. box .. " *val)", "{\n\tif (! " .. name .. "_read(buffer, &val->min))\n\t\treturn false;\n\tif (! " .. name .. "_read(buffer, &val->max))\n\t\treturn false;\n\treturn true;\n}\n\n")
+	emit(export_prefix .. "bool " .. box .. "_read(Blob *buffer, " .. box .. " *val)", "{\n\tif (!" .. name .. "_read(buffer, &val->min))\n\t\treturn false;\n\tif (!" .. name .. "_read(buffer, &val->max))\n\t\treturn false;\n\treturn true;\n}\n\n")
 
 	emit_c("#ifdef USE_DRAGONNET\n")
-	emit_c(local_prefix .. "bool " .. box .. "_send(DragonnetPeer *peer, bool submit, " .. box .. " *val)\n{\n\tif (! " .. name .. "_send(peer, false, &val->min))\n\t\treturn false;\n\tif (! " .. name .. "_send(peer, submit, &val->max))\n\t\treturn false;\n\treturn true;\n}\n\n")
-	emit_c(local_prefix .. "bool " .. box .. "_recv(DragonnetPeer *peer, " .. box .. " *val)\n{\n\tif (! " .. name .. "_recv(peer, &val->min))\n\t\treturn false;\n\t if (! " .. name .. "_recv(peer, &val->max))\n\t\treturn false;\n\treturn true;\n}\n")
+	emit_c(local_prefix .. "bool " .. box .. "_send(DragonnetPeer *peer, bool submit, " .. box .. " *val)\n{\n\tif (!" .. name .. "_send(peer, false, &val->min))\n\t\treturn false;\n\tif (!" .. name .. "_send(peer, submit, &val->max))\n\t\treturn false;\n\treturn true;\n}\n\n")
+	emit_c(local_prefix .. "bool " .. box .. "_recv(DragonnetPeer *peer, " .. box .. " *val)\n{\n\tif (!" .. name .. "_recv(peer, &val->min))\n\t\treturn false;\n\t if (!" .. name .. "_recv(peer, &val->max))\n\t\treturn false;\n\treturn true;\n}\n")
 	emit_c("#endif\n\n")
 
 	emit_h("\n")
@@ -271,7 +271,7 @@ local function emit_numeric(class, bits, alias)
 		or  "\tu" .. bits .. "_write(buffer, (u" .. bits .. " *) val);\n"
 	) .. "}\n\n")
 	emit(export_prefix .. "bool " .. name .. "_read(Blob *buffer, " .. name .. " *val)", "{\n" .. (class == "u"
-		and "\t" .. name .. " be;\n\tif (! raw_read(buffer, &be, sizeof be))\n\t\treturn false;\n\t*val = be" .. bits .. "toh(be);\n\treturn true;\n"
+		and "\t" .. name .. " be;\n\tif (!raw_read(buffer, &be, sizeof be))\n\t\treturn false;\n\t*val = be" .. bits .. "toh(be);\n\treturn true;\n"
 		or  "\treturn u" .. bits .. "_read(buffer, (u" .. bits .. " *) val);\n"
 	) .. "}\n\n")
 
@@ -281,7 +281,7 @@ local function emit_numeric(class, bits, alias)
 		or  "\treturn u" .. bits .. "_send(peer, submit, (u" .. bits .. " *) val);\n"
 	) .. "}\n\n")
 	emit_c(local_prefix .. "bool " .. name .. "_recv(DragonnetPeer *peer, " .. name .. " *val)\n{\n" .. (class == "u"
-		and "\t" .. name .. " be;\n\tif (! dragonnet_recv_raw(peer, &be, sizeof be))\n\t\treturn false;\n\t*val = be" .. bits .. "toh(be);\n\treturn true;\n"
+		and "\t" .. name .. " be;\n\tif (!dragonnet_recv_raw(peer, &be, sizeof be))\n\t\treturn false;\n\t*val = be" .. bits .. "toh(be);\n\treturn true;\n"
 		or  "\treturn u" .. bits .. "_recv(peer, (u" .. bits .. " *) val);\n"
 	) .. "}\n")
 	emit_c("#endif\n\n")
@@ -336,7 +336,7 @@ export_prefix .. "bool String_read(Blob *buffer, String *val)", [[
 
 	char c;
 	for (u16 i = 0;; i++) {
-		if (! raw_read(buffer, &c, 1)) {
+		if (!raw_read(buffer, &c, 1)) {
 			free(v);
 			return false;
 		}
@@ -368,7 +368,7 @@ emit_c(
 
 	char c;
 	for (u16 i = 0;; i++) {
-		if (! dragonnet_recv_raw(peer, &c, 1)) {
+		if (!dragonnet_recv_raw(peer, &c, 1)) {
 			free(v);
 			return false;
 		}
@@ -480,10 +480,10 @@ export_prefix .. "void Blob_write(Blob *buffer, Blob *val)", [[
 emit(
 export_prefix .. "bool Blob_read(Blob *buffer, Blob *val)", [[
 {
-	if (! u64_read(buffer, &val->siz))
+	if (!u64_read(buffer, &val->siz))
 		return false;
 
-	if (! raw_read(buffer, val->data = malloc(val->siz), val->siz)) {
+	if (!raw_read(buffer, val->data = malloc(val->siz), val->siz)) {
 		free(val->data);
 		val->data = NULL;
 		return false;
@@ -500,17 +500,17 @@ emit_c(
 #ifdef USE_DRAGONNET
 ]] .. local_prefix .. [[bool Blob_send(DragonnetPeer *peer, bool submit, Blob *val)
 {
-	if (! u64_send(peer, false, &val->siz))
+	if (!u64_send(peer, false, &val->siz))
 		return false;
 	return dragonnet_send_raw(peer, submit, val->data, val->siz);
 }
 
 ]] .. local_prefix .. [[bool Blob_recv(DragonnetPeer *peer, Blob *val)
 {
-	if (! u64_recv(peer, &val->siz))
+	if (!u64_recv(peer, &val->siz))
 		return false;
 
-	if (! dragonnet_recv_raw(peer, val->data = malloc(val->siz), val->siz)) {
+	if (!dragonnet_recv_raw(peer, val->data = malloc(val->siz), val->siz)) {
 		free(val->data);
 		val->data = NULL;
 		return false;
@@ -779,20 +779,20 @@ for _, t in ipairs(custom_types) do
 			)
 
 		read = read
-			.. loop .. indent .. "if (! " .. (compressed
+			.. loop .. indent .. "if (!" .. (compressed
 				and "raw_read_compressed(buffer, " .. addr .. ", (void *) &" .. c.type .. "_read)"
 				or      c.type .. "_read(buffer, " .. addr .. ")"
 			) .. ")\n" .. indent .. "\treturn false;\n"
 
 		local submit = ic == #t.components and "submit" .. array_submit or "false"
 		send = send
-			.. loop .. indent .. "if (! " .. (compressed
+			.. loop .. indent .. "if (!" .. (compressed
 				and "raw_send_compressed(peer, " .. submit .. ", " .. addr .. ", (void *) &" .. c.type .. "_write)"
 				or      c.type .. "_send(peer, " .. submit .. ", " .. addr .. ")"
 			) .. ")\n" .. indent .. "\treturn false;\n"
 
 		recv = recv
-			.. loop .. indent .. "if (! " .. (compressed
+			.. loop .. indent .. "if (!" .. (compressed
 				and "raw_recv_compressed(peer, " .. addr .. ", (void *) &" .. c.type .. "_read)"
 				or      c.type .. "_recv(peer, " .. addr .. ")"
 			) .. ")\n" .. indent .. "\treturn false;\n"
@@ -820,7 +820,7 @@ for _, t in ipairs(custom_types) do
 		emit_c("\n")
 		emit_c("static DragonnetTypeId " .. t.name .. "_type_id = DRAGONNET_TYPE_" .. t.name .. ";\n")
 
-		emit("bool dragonnet_peer_send_" .. t.name .. "(DragonnetPeer *peer, " .. t.name .. " *val)", "{\n\tpthread_mutex_lock(&peer->mtx);\n\tif (! u16_send(peer, false, &" .. t.name .. "_type_id))\n\t\treturn false;\n\tif (! " .. t.name .. "_send(peer, true, val))\n\t\treturn false;\n\treturn true;\n}\n")
+		emit("bool dragonnet_peer_send_" .. t.name .. "(DragonnetPeer *peer, " .. t.name .. " *val)", "{\n\tpthread_mutex_lock(&peer->mtx);\n\tif (!u16_send(peer, false, &" .. t.name .. "_type_id))\n\t\treturn false;\n\tif (!" .. t.name .. "_send(peer, true, val))\n\t\treturn false;\n\treturn true;\n}\n")
 		emit_h("#endif\n")
 
 		dragonnet_types_h = dragonnet_types_h
