@@ -19,6 +19,7 @@ local function emit(fun, code)
 end
 
 -- fn prefixes
+local struct_prefix = "__attribute__((packed)) "
 local export_prefix = ""
 local local_prefix = "__attribute__((unused)) static inline "
 
@@ -50,7 +51,7 @@ typedef char *String;
 typedef struct {
 	size_t siz;
 	unsigned char *data;
-} Blob;
+} ]] .. struct_prefix .. [[Blob;
 
 ]]
 )
@@ -214,7 +215,7 @@ local function emit_vector(type, l)
 			.. "\tif (!" .. type .. "_recv(peer, &val->" .. c .. "))\n\t\treturn false;\n"
 	end
 
-	emit_h("typedef struct {\n" .. typedef ..  "} " .. name .. ";\n")
+	emit_h("typedef struct {\n" .. typedef ..  "} " .. struct_prefix .. name .. ";\n")
 
 	emit(export_prefix .. "bool " .. name .. "_equals(" .. name .. " a, " .. name .. " b)", "{\n" .. equals .. "}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_add(" .. name .. " a, " .. name .. " b)", "{\n" .. add .. "}\n\n")
@@ -236,7 +237,7 @@ local function emit_vector(type, l)
 
 	emit_h("\n")
 
-	emit_h("typedef struct {\n\t" .. name .. " min, max;\n} " .. box .. ";\n")
+	emit_h("typedef struct {\n\t" .. name .. " min, max;\n} " .. struct_prefix .. box .. ";\n")
 
 	emit(export_prefix .. "void " .. box .. "_write(Blob *buffer, " .. box .. " *val)", "{\n\t" .. name .. "_write(buffer, &val->min);\n\t" .. name .. "_write(buffer, &val->max);\n}\n\n")
 	emit(export_prefix .. "bool " .. box .. "_read(Blob *buffer, " .. box .. " *val)", "{\n\tif (!" .. name .. "_read(buffer, &val->min))\n\t\treturn false;\n\tif (!" .. name .. "_read(buffer, &val->max))\n\t\treturn false;\n\treturn true;\n}\n\n")
@@ -798,7 +799,7 @@ for _, t in ipairs(custom_types) do
 			) .. ")\n" .. indent .. "\treturn false;\n"
 	end
 
-	emit_h("typedef struct {\n" .. typedef .. "} " .. t.name .. ";\n")
+	emit_h("typedef struct {\n" .. typedef .. "} " .. struct_prefix .. t.name .. ";\n")
 
 	if has_deallocator[t.name] then
 		emit(export_prefix .. "void " .. t.name .. "_free(" .. t.name .. " *val)", "{\n" .. free .. "}\n\n")
