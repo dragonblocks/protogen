@@ -122,6 +122,8 @@ end
 
 -- numeric types
 
+local numeric_types = {}
+
 local function emit_vector(type, l)
 	local name = "v" .. l .. type
 	local box = "aabb" .. l .. type
@@ -134,15 +136,6 @@ local function emit_vector(type, l)
 
 	local typedef, equals, add, sub, clamp, cmp, scale, mix, write, read, send, recv =
 	           "",     "",  "",  "",    "",  "",    "",  "",    "",   "",   "",   ""
-
-	typedef = typedef .. "\t" .. type .. " "
-	equals  = equals  .. "\treturn "
-	add     = add     .. "\treturn (" .. name .. ") {"
-	sub     = sub     .. "\treturn (" .. name .. ") {"
-	clamp   = clamp   .. "\treturn (" .. name .. ") {"
-	cmp     = cmp     .. "\tint i;\n"
-	scale   = scale   .. "\treturn (" .. name .. ") {"
-	mix     = mix     .. "\treturn (" .. name .. ") {"
 
 	for i, c in ipairs(vector_components[l]) do
 		local last = i == l
@@ -224,17 +217,17 @@ local function emit_vector(type, l)
 			.. "\tif (!" .. type .. "_recv(peer, &val->" .. c .. "))\n\t\treturn false;\n"
 	end
 
-	emit_h("typedef struct {\n" .. typedef ..  "} " .. struct_prefix .. name .. ";\n")
+	emit_h("typedef struct {\n\t" .. type .. " " .. typedef ..  "} " .. struct_prefix .. name .. ";\n")
 
-	emit(export_prefix .. "bool " .. name .. "_equals(" .. name .. " a, " .. name .. " b)", "{\n" .. equals .. "}\n\n")
-	emit(export_prefix .. name .. " " .. name .. "_add(" .. name .. " a, " .. name .. " b)", "{\n" .. add .. "}\n\n")
-	emit(export_prefix .. name .. " " .. name .. "_sub(" .. name .. " a, " .. name .. " b)", "{\n" .. add .. "}\n\n")
-	emit(export_prefix .. name .. " " .. name .. "_clamp(" .. name .. " val, " .. name .. " min, " .. name .. " max)", "{\n" .. clamp .. "}\n\n")
-	emit(export_prefix .. "int " .. name .. "_cmp(const void *a, const void *b)", "{\n" .. cmp .. "\treturn 0;\n}\n\n")
-	emit(export_prefix .. name .. " " .. name .. "_scale(" .. name .. " v, " .. type .. " s)", "{\n" .. scale .. "}\n\n")
+	emit(export_prefix .. "bool " .. name .. "_equals(" .. name .. " a, " .. name .. " b)", "{\n\treturn " .. equals .. "}\n\n")
+	emit(export_prefix .. name .. " " .. name .. "_add(" .. name .. " a, " .. name .. " b)", "{\n\treturn (" .. name .. ") {" .. add .. "}\n\n")
+	emit(export_prefix .. name .. " " .. name .. "_sub(" .. name .. " a, " .. name .. " b)", "{\n\treturn (" .. name .. ") {" .. add .. "}\n\n")
+	emit(export_prefix .. name .. " " .. name .. "_clamp(" .. name .. " val, " .. name .. " min, " .. name .. " max)", "{\n\treturn (" .. name .. ") {" .. clamp .. "}\n\n")
+	emit(export_prefix .. "int " .. name .. "_cmp(const void *a, const void *b)", "{\n\tint i;\n" .. cmp .. "\treturn 0;\n}\n\n")
+	emit(export_prefix .. name .. " " .. name .. "_scale(" .. name .. " v, " .. type .. " s)", "{\n\treturn (" .. name .. ") {" .. scale .. "}\n\n")
 
 	if type:sub(1, 1) == "f" then
-		emit(export_prefix .. name .. " " .. name .. "_mix(" .. name .. " a, " .. name .. " b, " .. type .. " f)", "{\n" .. mix .. "}\n\n")
+		emit(export_prefix .. name .. " " .. name .. "_mix(" .. name .. " a, " .. name .. " b, " .. type .. " f)", "{\n\treturn (" .. name .. ") {" .. mix .. "}\n\n")
 	end
 
 	emit(export_prefix .. "void " .. name .. "_write(Blob *buffer, " .. name .. " *val)", "{\n" .. write .. "}\n\n")
@@ -262,6 +255,7 @@ end
 
 local function emit_numeric(class, bits, alias)
 	local name = class .. bits
+	table.insert(numeric_types, name)
 
 	existing_types[name] = true
 	has_deallocator[name] = false
@@ -315,6 +309,36 @@ for i = 0, 3 do
 		emit_numeric("f", bits, ({"float", "double"})[i - 1])
 	end
 end
+
+local converters = {}
+
+for l = 2, 4 do
+	converters[l] = ""
+
+	for i, c in ipairs(vector_components[l]) do
+		converters[l] = converters[l]
+			.. "v." .. c ..
+			((i == l)
+				and "};\n"
+				or ", "
+			)
+	end
+end
+
+for _, from in ipairs(numeric_types) do
+	for _, to in ipairs(numeric_types) do
+		if from ~= to then
+			for i = 2, 4 do
+				local v_from = "v" .. i .. from
+				local v_to   = "v" .. i .. to
+
+				emit(export_prefix .. v_to .. " " .. v_from .. "_to_" .. to  .. "(" .. v_from .. " v)", "{\n\treturn (" .. v_to .. ") {" .. converters[i] .. "}\n\n")
+			end
+		end
+	end
+end
+
+emit_h("\n")
 
 -- string
 
