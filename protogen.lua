@@ -221,7 +221,7 @@ local function emit_vector(type, l)
 
 	emit(export_prefix .. "bool " .. name .. "_equals(" .. name .. " a, " .. name .. " b)", "{\n\treturn " .. equals .. "}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_add(" .. name .. " a, " .. name .. " b)", "{\n\treturn (" .. name .. ") {" .. add .. "}\n\n")
-	emit(export_prefix .. name .. " " .. name .. "_sub(" .. name .. " a, " .. name .. " b)", "{\n\treturn (" .. name .. ") {" .. add .. "}\n\n")
+	emit(export_prefix .. name .. " " .. name .. "_sub(" .. name .. " a, " .. name .. " b)", "{\n\treturn (" .. name .. ") {" .. sub .. "}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_clamp(" .. name .. " val, " .. name .. " min, " .. name .. " max)", "{\n\treturn (" .. name .. ") {" .. clamp .. "}\n\n")
 	emit(export_prefix .. "int " .. name .. "_cmp(const void *a, const void *b)", "{\n\tint i;\n" .. cmp .. "\treturn 0;\n}\n\n")
 	emit(export_prefix .. name .. " " .. name .. "_scale(" .. name .. " v, " .. type .. " s)", "{\n\treturn (" .. name .. ") {" .. scale .. "}\n\n")
