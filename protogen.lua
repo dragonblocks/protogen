@@ -3,7 +3,7 @@ require "luax"
 
 local h   = io.open("types.h",   "w")
 local c   = io.open("types.c",   "w")
-local def = io.open("types.def", "r")
+local def = io.open(arg[1] or "types.def", "r")
 
 local function emit_h(str)
 	h:write(str)
