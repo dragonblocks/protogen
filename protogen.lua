@@ -761,16 +761,28 @@ for _, t in ipairs(custom_types) do
 	           "",   "",    "",   "",   "",   ""
 
 	for ic, c in ipairs(t.components) do
-		typedef = typedef
-			.. "\t" .. c.type .. " " .. c.name
+		local type = c.type
+		local type_end = ""
 
 		if c.array then
-			typedef = typedef
-				.. "[" .. table.concat(c.array, "][") .. "]"
+			local indices = {}
+
+			for _, a in ipairs(c.array) do
+				table.insert(indices, 1, a)
+			end
+
+			for _, a in ipairs(indices) do
+				if a == "" then
+					type = "struct { size_t siz; " .. type .. " (*ptr)" .. type_end .. "; }"
+					type_end = ""
+				else
+					type_end = "[" .. a .. "]" .. type_end
+				end
+			end
 		end
 
 		typedef = typedef
-			.. ";\n"
+			.. "\t" .. type .. " " .. c.name .. type_end .. ";\n"
 
 		local compressed = false
 
@@ -782,21 +794,69 @@ for _, t in ipairs(custom_types) do
 			end
 		end
 
-		local indent = "\t"
-		local loop = ""
+		local indent = {
+			free = "\t",
+			write = "\t",
+			read = "\t",
+			send = "\t",
+			recv = "\t",
+		}
+		local loop = {
+			free = "",
+			write = "",
+			read = "",
+			send = "",
+			recv = ""
+		}
+		local loop_end = {
+			free = "",
+			write = "",
+			read = "",
+			send = "",
+			recv = ""
+		}
 		local index = ""
 		local array_submit = ""
 
 		if c.array then
 			for ia, a in ipairs(c.array) do
 				local it = "i" .. ia
+				local siz = a
 
-				loop = loop .. indent .. "for (int " .. it .. " = 0; " .. it .. " < " .. a .. "; " .. it .. "++)\n"
-				indent = indent .. "\t"
+				if a == "" then
+					local var = "val->" .. c.name .. index
+					local ptr = var .. ".ptr"
+					siz = var .. ".siz"
 
+					loop.free = loop.free .. indent.free .. "if (" .. ptr .. ") {\n"
+					loop_end.free = indent.free .. "}\n" .. loop_end.free
+					indent.free = indent.free .. "\t"
+					loop_end.free = indent.free .. "free(" .. ptr .. ");\n" .. loop_end.free
+
+					loop.write = loop.write .. indent.write .. "u64_write(buffer, &" .. siz .. ");\n"
+
+					loop.send = loop.send .. indent.send .. "if (!u64_send(peer, &" .. siz .. ", false))\n"
+						.. indent.send .. "\treturn false;\n"
+
+					loop.read = loop.read .. indent.read .. "if (!u64_read(buffer, &" .. siz .. "))\n"
+						.. indent.read .. "\treturn false;\n"
+						.. indent.read .. ptr .. " = calloc(" .. siz .. ", sizeof *" .. ptr .. ");\n"
+
+					loop.recv = loop.recv .. indent.recv .. "if (!u64_recv(peer, &" .. siz .. "))\n"
+						.. indent.recv .. "\treturn false;\n"
+						.. indent.recv .. ptr .. " = calloc(" .. siz .. ", sizeof *" .. ptr .. ");\n"
+
+					index = index .. ".ptr"
+				end
+
+				for f in pairs(loop) do
+					loop[f] = loop[f] .. indent[f] .. "for (size_t " .. it .. " = 0; " .. it .. " < " .. siz .. "; " .. it .. "++) {\n"
+					loop_end[f] = indent[f] .. "}\n" .. loop_end[f]
+					indent[f] = indent[f] .. "\t"
+				end
+	
 				index = index .. "[" .. it .. "]"
-
-				array_submit = array_submit .. " && " .. it .. " == " .. a
+				array_submit = array_submit .. " && " .. it .. " == " .. siz .. " - 1"
 			end
 		end
 
@@ -804,33 +864,33 @@ for _, t in ipairs(custom_types) do
 
 		if has_deallocator[c.type] then
 			free = free
-				.. loop .. indent .. c.type .. "_free(" .. addr .. ");\n"
+				.. loop.free .. indent.free .. c.type .. "_free(" .. addr .. ");\n" .. loop_end.free
 		end
 
 		write = write
-			.. loop .. indent .. (compressed
+			.. loop.write .. indent.write .. (compressed
 				and "raw_write_compressed(buffer, " .. addr .. ", (void *) &" .. c.type .. "_write);\n"
 				or      c.type .. "_write(buffer, " .. addr .. ");\n"
-			)
+			) .. loop_end.write
 
 		read = read
-			.. loop .. indent .. "if (!" .. (compressed
+			.. loop.read .. indent.read .. "if (!" .. (compressed
 				and "raw_read_compressed(buffer, " .. addr .. ", (void *) &" .. c.type .. "_read)"
 				or      c.type .. "_read(buffer, " .. addr .. ")"
-			) .. ")\n" .. indent .. "\treturn false;\n"
+			) .. ")\n" .. indent.read .. "\treturn false;\n" .. loop_end.read
 
 		local submit = ic == #t.components and "submit" .. array_submit or "false"
 		send = send
-			.. loop .. indent .. "if (!" .. (compressed
+			.. loop.send .. indent.send .. "if (!" .. (compressed
 				and "raw_send_compressed(peer, " .. submit .. ", " .. addr .. ", (void *) &" .. c.type .. "_write)"
 				or      c.type .. "_send(peer, " .. submit .. ", " .. addr .. ")"
-			) .. ")\n" .. indent .. "\treturn false;\n"
+			) .. ")\n" .. indent.send .. "\treturn false;\n" .. loop_end.send
 
 		recv = recv
-			.. loop .. indent .. "if (!" .. (compressed
+			.. loop.recv .. indent.recv .. "if (!" .. (compressed
 				and "raw_recv_compressed(peer, " .. addr .. ", (void *) &" .. c.type .. "_read)"
 				or      c.type .. "_recv(peer, " .. addr .. ")"
-			) .. ")\n" .. indent .. "\treturn false;\n"
+			) .. ")\n" .. indent.recv .. "\treturn false;\n" .. loop_end.recv
 	end
 
 	emit_h("typedef struct {\n" .. typedef .. "} " .. struct_prefix .. t.name .. ";\n")
