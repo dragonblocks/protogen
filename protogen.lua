@@ -49,7 +49,7 @@ emit_h([[
 typedef char *String;
 
 typedef struct {
-	size_t siz;
+	uint64_t siz;
 	unsigned char *data;
 } ]] .. struct_prefix .. [[Blob;
 
@@ -64,6 +64,7 @@ emit_c([[
 #endif
 
 #include <endian.h/endian.h>
+#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdlib.h>
@@ -88,7 +89,7 @@ emit_c([[
 		return true;
 
 	if (buffer->siz < len) {
-		fprintf(stderr, "[warning] buffer exhausted (requested bytes: %zu, remaining bytes: %zu)\n", len, buffer->siz);
+		fprintf(stderr, "[warning] buffer exhausted (requested bytes: %zu, remaining bytes: %" PRIu64 ")\n", len, buffer->siz);
 		return false;
 	}
 
