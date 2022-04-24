@@ -88,7 +88,7 @@ emit_c([[
 		return true;
 
 	if (buffer->siz < len) {
-		fprintf(stderr, "[warning] buffer exhausted (requested bytes: %lu, remaining bytes: %lu)\n", len, buffer->siz);
+		fprintf(stderr, "[warning] buffer exhausted (requested bytes: %zu, remaining bytes: %zu)\n", len, buffer->siz);
 		return false;
 	}
 
