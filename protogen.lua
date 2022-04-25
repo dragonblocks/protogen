@@ -63,7 +63,7 @@ emit_c([[
 #include <dragonnet/recv.h>
 #endif
 
-#include <endian.h/endian.h>
+#include <endian.h>
 #include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
