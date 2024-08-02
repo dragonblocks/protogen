@@ -5,6 +5,14 @@ local h   = io.open("types.h",   "w")
 local c   = io.open("types.c",   "w")
 local def = io.open(arg[1] or "types.def", "r")
 
+local function split_ws(str)
+	local t = {}
+	for s in str:gmatch("([^%s]+)") do
+		table.insert(t, s)
+	end
+	return t
+end
+
 local function emit_h(str)
 	h:write(str)
 end
@@ -640,7 +648,7 @@ local function consume_name(name)
 	else
 		current_type = {components = {}, component_names = {}}
 
-		current_type.flags = name:split(" ")
+		current_type.flags = split_ws(name)
 		current_type.name = table.remove(current_type.flags, #current_type.flags)
 
 		if existing_types[current_type.name] then
@@ -659,7 +667,7 @@ local function consume_comp(comp)
 
 	local component = {}
 
-	component.flags = comp:split(" ")
+	component.flags = split_ws(comp)
 	component.name = table.remove(component.flags, #component.flags)
 	component.type = table.remove(component.flags, #component.flags)
 
@@ -855,7 +863,7 @@ for _, t in ipairs(custom_types) do
 					loop_end[f] = indent[f] .. "}\n" .. loop_end[f]
 					indent[f] = indent[f] .. "\t"
 				end
-	
+
 				index = index .. "[" .. it .. "]"
 				array_submit = array_submit .. " && " .. it .. " == " .. siz .. " - 1"
 			end
