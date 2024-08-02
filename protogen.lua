@@ -1,9 +1,8 @@
 #!/usr/bin/env lua
-require "luax"
 
-local h   = io.open("types.h",   "w")
-local c   = io.open("types.c",   "w")
 local def = io.open(arg[1] or "types.def", "r")
+local c   = io.open(arg[2] or "types.c",   "w")
+local h   = io.open(arg[3] or "types.h",   "w")
 
 local function split_ws(str)
 	local t = {}
