@@ -26,7 +26,7 @@ local function emit(fun, code)
 end
 
 -- fn prefixes
-local struct_prefix = "__attribute__((packed)) "
+local struct_prefix = ""
 local export_prefix = ""
 local local_prefix = "__attribute__((unused)) static inline "
 
