@@ -85,6 +85,7 @@ emit_c([[
 
 ]] .. local_prefix ..  [[void raw_write(Blob *buffer, const void *data, size_t len)
 {
+	if (len == 0) return;
 	buffer->data = realloc(buffer->data, len + buffer->siz);
 	memcpy(&buffer->data[buffer->siz], data, len);
 	buffer->siz += len;
